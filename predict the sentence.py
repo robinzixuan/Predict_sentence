@@ -20,8 +20,7 @@ import matplotlib.pyplot as plt
 import pickle
 import sys
 import heapq
-import seaborn as sns
-from pylab import rcParams
+
 
 
 
@@ -31,12 +30,12 @@ from pylab import rcParams
     
 def train(SEQUENCE_LENGTH,chars):    
     model = Sequential()
-    model.add(LSTM(128, input_shape=(SEQUENCE_LENGTH, len(chars))))
+    model.add(LSTM(64, input_shape=(SEQUENCE_LENGTH, len(chars))))
     model.add(Dense(len(chars)))
     model.add(Activation('softmax'))
     optimizer = RMSprop(lr=0.01)
     model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
-    history = model.fit(X, y, validation_split=0.05, batch_size=128, epochs=20, shuffle=True).history
+    history = model.fit(X, y, validation_split=0.15, batch_size=64, epochs=8, shuffle=True).history
     model.save('keras_model.h5')
     pickle.dump(history, open("history.p", "wb"))
 
@@ -59,7 +58,12 @@ def simulation():
     
 
 
-
+def prepare_input(text):
+    x = np.zeros((1, SEQUENCE_LENGTH, len(chars)))
+    for t, char in enumerate(text):
+        x[0, t, char_indices[char]] = 1.
+        
+    return x
 
 
 
@@ -72,6 +76,7 @@ def sample(preds, top_n=3):
     return heapq.nlargest(top_n, range(len(preds)), preds.take)
 
 def predict_completion(text):
+    model = load_model('keras_model.h5')
     original_text = text
     generated = text
     completion = ''
@@ -87,6 +92,7 @@ def predict_completion(text):
             return completion
         
 def predict_completions(text, n=3):
+    model = load_model('keras_model.h5')
     x = prepare_input(text)
     preds = model.predict(x, verbose=0)[0]
     next_indices = sample(preds, n)
@@ -94,17 +100,16 @@ def predict_completions(text, n=3):
 
 
 
-sns.set(style='whitegrid', palette='muted', font_scale=1.5)
-
-rcParams['figure.figsize'] = 10, 5
 
 path = '3student.txt'
 text = open(path).read().lower()
 print('corpus length:', len(text))
 chars = sorted(list(set(text)))
-char_indices = dict((c, i) for i, c in enumerate(chars))
-indices_char = dict((i, c) for i, c in enumerate(chars))
-
+char_indices=dict()
+indices_char=dict()
+for i, c in enumerate(chars):
+    char_indices[c]= i
+    indices_char[i]= c
 print(f'unique chars: {len(chars)}')
     
 SEQUENCE_LENGTH = 50
