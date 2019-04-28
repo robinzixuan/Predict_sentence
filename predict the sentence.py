@@ -13,17 +13,12 @@ tf.set_random_seed(45)
 from keras.models import Sequential, load_model
 from keras.layers import Dense, Activation
 from keras.layers import LSTM, Dropout
-from keras.layers import TimeDistributed
-from keras.layers.core import Dense, Activation, Dropout, RepeatVector
+#from keras.layers.core import  Dropout, RepeatVector
 from keras.optimizers import RMSprop
 import matplotlib.pyplot as plt
 import pickle
-import sys
+
 import heapq
-
-
-
-
 
 
 
@@ -43,37 +38,37 @@ def train(SEQUENCE_LENGTH,chars):
 def simulation():
     model = load_model('keras_model.h5')
     history = pickle.load(open("history.p", "rb"))
-    plt.plot(history['acc'])
-    plt.plot(history['val_acc'])
-    plt.title('model accuracy')
-    plt.ylabel('accuracy')
-    plt.xlabel('epoch')
-    plt.legend(['train', 'test'], loc='upper left');
     plt.plot(history['loss'])
     plt.plot(history['val_loss'])
     plt.title('model loss')
     plt.ylabel('loss')
-    plt.xlabel('epoch')
+    plt.xlabel('Epoch')
+    plt.legend(['train', 'test'], loc='upper left');
+    plt.plot(history['acc'])
+    plt.plot(history['val_acc'])
+    plt.title('model accuracy')
+    plt.ylabel('acc')
+    plt.xlabel('Epoch')
     plt.legend(['train', 'test'], loc='upper left');
     
 
 
 def prepare_input(text):
-    x = np.zeros((1, SEQUENCE_LENGTH, len(chars)))
+    y = np.zeros((1, SEQUENCE_LENGTH, len(chars)))
     for t, char in enumerate(text):
-        x[0, t, char_indices[char]] = 1.
+        y[0, t, char_indices[char]] = 1.
         
-    return x
+    return y
 
 
 
-def sample(preds, top_n=3):
-    preds = np.asarray(preds).astype('float64')
-    preds = np.log(preds)
-    exp_preds = np.exp(preds)
-    preds = exp_preds / np.sum(exp_preds)
+def sample(pred, top_n=3):
+    pred = np.asarray(pred).astype('float64')
+    pred = np.log(pred)
+    exp = np.exp(pred)
+    pred = exp / np.sum(exp)
     
-    return heapq.nlargest(top_n, range(len(preds)), preds.take)
+    return heapq.nlargest(top_n, range(len(pred)), pred.take)
 
 def predict_completion(text):
     model = load_model('keras_model.h5')
@@ -97,7 +92,6 @@ def predict_completions(text, n=3):
     preds = model.predict(x, verbose=0)[0]
     next_indices = sample(preds, n)
     return [indices_char[idx] + predict_completion(text[1:] + indices_char[idx]) for idx in next_indices]
-
 
 
 
@@ -141,3 +135,5 @@ for q in quotes:
     print(seq)
     print(predict_completions(seq, 5))
     print()
+
+
